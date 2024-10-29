@@ -1,5 +1,6 @@
--- Server Script for Rig Control
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
 
 -- Create RemoteEvents for communication
 local toggleFollowEvent = Instance.new("RemoteEvent")
@@ -14,12 +15,11 @@ local sitRigEvent = Instance.new("RemoteEvent")
 sitRigEvent.Name = "SitRig"
 sitRigEvent.Parent = ReplicatedStorage
 
+-- Function to create an R6 rig
 local function createR6Rig(player)
-    -- Create an R6 rig
     local rig = Instance.new("Model", workspace)
     rig.Name = player.Name .. "'s Rig"
     
-    -- Create Humanoid and Parts for R6
     local humanoid = Instance.new("Humanoid", rig)
     humanoid.MaxHealth = math.huge
     humanoid.Health = humanoid.MaxHealth
@@ -28,7 +28,7 @@ local function createR6Rig(player)
     humanoidRootPart.Size = Vector3.new(2, 5, 1)
     humanoidRootPart.Anchored = false
     humanoidRootPart.CanCollide = true
-    humanoidRootPart.Position = player.Character.HumanoidRootPart.Position + Vector3.new(5, 0, 0) -- Spawn slightly to the side
+    humanoidRootPart.Position = player.Character.HumanoidRootPart.Position + Vector3.new(5, 0, 0)
     humanoidRootPart.Name = "HumanoidRootPart"
     
     -- Create R6 parts
@@ -36,7 +36,7 @@ local function createR6Rig(player)
     head.Size = Vector3.new(2, 1, 1)
     head.Position = humanoidRootPart.Position + Vector3.new(0, 3, 0)
     head.Name = "Head"
-    head.BrickColor = BrickColor.White() -- Default head color
+    head.BrickColor = BrickColor.White()
     
     local torso = Instance.new("Part", rig)
     torso.Size = Vector3.new(2, 2, 1)
@@ -64,32 +64,134 @@ local function createR6Rig(player)
     rightArm.Name = "Right Arm"
 
     -- Create joints between parts
-    local weld = Instance.new("WeldConstraint", torso)
-    weld.Part0 = humanoidRootPart
-    weld.Part1 = torso
-    
-    local headWeld = Instance.new("WeldConstraint", torso)
-    headWeld.Part0 = torso
-    headWeld.Part1 = head
-    
-    local leftLegWeld = Instance.new("WeldConstraint", torso)
-    leftLegWeld.Part0 = torso
-    leftLegWeld.Part1 = leftLeg
-    
-    local rightLegWeld = Instance.new("WeldConstraint", torso)
-    rightLegWeld.Part0 = torso
-    rightLegWeld.Part1 = rightLeg
-    
-    local leftArmWeld = Instance.new("WeldConstraint", torso)
-    leftArmWeld.Part0 = torso
-    leftArmWeld.Part1 = leftArm
-    
-    local rightArmWeld = Instance.new("WeldConstraint", torso)
-    rightArmWeld.Part0 = torso
-    rightArmWeld.Part1 = rightArm
+    Instance.new("WeldConstraint", torso).Part0 = humanoidRootPart
+    Instance.new("WeldConstraint", torso).Part0 = torso
+    Instance.new("WeldConstraint", torso).Part0 = leftLeg
+    Instance.new("WeldConstraint", torso).Part0 = rightLeg
+    Instance.new("WeldConstraint", torso).Part0 = leftArm
+    Instance.new("WeldConstraint", torso).Part0 = rightArm
 
     return rig
 end
+
+local playerRigs = {}
+
+-- Player GUI Setup
+local function setupPlayerGui(player)
+    local playerGui = player:WaitForChild("PlayerGui")
+    local gui = Instance.new("ScreenGui", playerGui)
+    gui.Name = "RigControlGUI"
+
+    -- Background Frame
+    local background = Instance.new("Frame", gui)
+    background.Size = UDim2.new(0, 300, 0, 400)
+    background.Position = UDim2.new(0.5, -150, 0.5, -200)
+    background.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    background.BackgroundTransparency = 0.5
+    background.BorderSizePixel = 0
+
+    -- Draggable Functionality
+    local isDragging = false
+    local dragStart
+    local startPos
+
+    local function updateInput(input)
+        if isDragging then
+            local delta = input.Position - dragStart
+            background.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end
+
+    background.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            isDragging = true
+            dragStart = input.Position
+            startPos = background.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    isDragging = false
+                end
+            end)
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(updateInput)
+
+    -- Close Button
+    local closeButton = Instance.new("TextButton", background)
+    closeButton.Size = UDim2.new(0, 40, 0, 40)
+    closeButton.Position = UDim2.new(1, -50, 0, 10)
+    closeButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    closeButton.Text = "X"
+    closeButton.Font = Enum.Font.SourceSansBold
+    closeButton.TextSize = 24
+    closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+    closeButton.MouseButton1Click:Connect(function()
+        gui:Destroy()
+    end)
+
+    -- Function to create rainbow buttons
+    local function createRainbowButton(parent, text, position)
+        local button = Instance.new("TextButton", parent)
+        button.Size = UDim2.new(0, 280, 0, 50)
+        button.Position = position
+        button.Text = text
+        button.Font = Enum.Font.SourceSansBold
+        button.TextSize = 24
+        button.TextColor3 = Color3.fromRGB(255, 255, 255)
+        
+        -- Create a gradient for the button background
+        local gradient = Instance.new("UIGradient", button)
+        gradient.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)), -- Red
+            ColorSequenceKeypoint.new(0.2, Color3.fromRGB(255, 165, 0)), -- Orange
+            ColorSequenceKeypoint.new(0.4, Color3.fromRGB(255, 255, 0)), -- Yellow
+            ColorSequenceKeypoint.new(0.6, Color3.fromRGB(0, 255, 0)), -- Green
+            ColorSequenceKeypoint.new(0.8, Color3.fromRGB(0, 0, 255)), -- Blue
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(75, 0, 130)) -- Indigo
+        })
+
+        return button
+    end
+
+    -- Spawn Rig Button
+    local spawnButton = createRainbowButton(background, "Spawn Rig", UDim2.new(0, 10, 0, 50))
+
+    -- Follow Button
+    local followButton = createRainbowButton(background, "Follow", UDim2.new(0, 10, 0, 110))
+
+    local following = false
+
+    followButton.MouseButton1Click:Connect(function()
+        -- Send a request to the server to toggle following
+        toggleFollowEvent:FireServer(following)
+        following = not following
+        followButton.Text = following and "Stop Following" or "Follow"
+    end)
+
+    -- Jump Button
+    local jumpButton = createRainbowButton(background, "Jump", UDim2.new(0, 10, 0, 170))
+
+    jumpButton.MouseButton1Click:Connect(function()
+        -- Send a request to the server to make the rig jump
+        jumpRigEvent:FireServer()
+    end)
+
+    -- Sit Button
+    local sitButton = createRainbowButton(background, "Sit", UDim2.new(0, 10, 0, 230))
+
+    sitButton.MouseButton1Click:Connect(function()
+        -- Send a request to the server to make the rig sit
+        sitRigEvent:FireServer()
+    end)
+end
+
+-- Handle player joining
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Wait() -- Wait for character to be added
+    setupPlayerGui(player) -- Setup GUI for the player
+end)
 
 local playerRigs = {}
 
@@ -101,31 +203,4 @@ toggleFollowEvent.OnServerEvent:Connect(function(player, following)
 
         -- Follow the player
         while playerRigs[player.UserId] and player.Character and player.Character:FindFirstChild("HumanoidRootPart") do
-            local rigHumanoidRootPart = rig:FindFirstChild("HumanoidRootPart")
-            if rigHumanoidRootPart then
-                rigHumanoidRootPart.Position = player.Character.HumanoidRootPart.Position + Vector3.new(5, 0, 0) -- Adjust position
-            end
-            wait(0.1)
-        end
-    else
-        -- Stop following and remove the rig
-        if playerRigs[player.UserId] then
-            playerRigs[player.UserId]:Destroy()
-            playerRigs[player.UserId] = nil
-        end
-    end
-end)
-
-jumpRigEvent.OnServerEvent:Connect(function(player)
-    local rig = playerRigs[player.UserId]
-    if rig and rig:FindFirstChild("Humanoid") then
-        rig.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-    end
-end)
-
-sitRigEvent.OnServerEvent:Connect(function(player)
-    local rig = playerRigs[player.UserId]
-    if rig and rig:FindFirstChild("Humanoid") then
-        rig.Humanoid:Sit()
-    end
-end)
+           
