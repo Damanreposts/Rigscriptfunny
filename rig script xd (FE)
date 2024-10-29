@@ -203,4 +203,31 @@ toggleFollowEvent.OnServerEvent:Connect(function(player, following)
 
         -- Follow the player
         while playerRigs[player.UserId] and player.Character and player.Character:FindFirstChild("HumanoidRootPart") do
-           
+            local rigHumanoidRootPart = rig:FindFirstChild("HumanoidRootPart")
+            if rigHumanoidRootPart then
+                rigHumanoidRootPart.Position = player.Character.HumanoidRootPart.Position + Vector3.new(5, 0, 0) -- Adjust position
+            end
+            wait(0.1)
+        end
+    else
+        -- Stop following and remove the rig
+        if playerRigs[player.UserId] then
+            playerRigs[player.UserId]:Destroy()
+            playerRigs[player.UserId] = nil
+        end
+    end
+end)
+
+jumpRigEvent.OnServerEvent:Connect(function(player)
+    local rig = playerRigs[player.UserId]
+    if rig and rig:FindFirstChild("Humanoid") then
+        rig.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+    end
+end)
+
+sitRigEvent.OnServerEvent:Connect(function(player)
+    local rig = playerRigs[player.UserId]
+    if rig and rig:FindFirstChild("Humanoid") then
+        rig.Humanoid:Sit()
+    end
+end)
