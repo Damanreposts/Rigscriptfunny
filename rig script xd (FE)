@@ -1,0 +1,148 @@
+-- GUI Creation Script
+
+-- Create a ScreenGui
+local player = game.Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+local gui = Instance.new("ScreenGui", playerGui)
+gui.Name = "RigControlGUI"
+
+-- Background Frame
+local background = Instance.new("Frame", gui)
+background.Size = UDim2.new(0, 300, 0, 400)
+background.Position = UDim2.new(0.5, -150, 0.5, -200)
+background.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+background.BackgroundTransparency = 0.5
+background.BorderSizePixel = 0
+
+-- Draggable Functionality
+local isDragging = false
+local dragStart
+local startPos
+
+local function updateInput(input)
+    if isDragging then
+        local delta = input.Position - dragStart
+        background.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end
+
+background.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        isDragging = true
+        dragStart = input.Position
+        startPos = background.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                isDragging = false
+            end
+        end)
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(updateInput)
+
+-- Close Button
+local closeButton = Instance.new("TextButton", background)
+closeButton.Size = UDim2.new(0, 40, 0, 40)
+closeButton.Position = UDim2.new(1, -50, 0, 10)
+closeButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+closeButton.Text = "X"
+closeButton.Font = Enum.Font.SourceSansBold
+closeButton.TextSize = 24
+closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+closeButton.MouseButton1Click:Connect(function()
+    gui:Destroy()
+end)
+
+-- Spawn Rig Button
+local spawnButton = Instance.new("TextButton", background)
+spawnButton.Size = UDim2.new(0, 280, 0, 50)
+spawnButton.Position = UDim2.new(0, 10, 0, 50)
+spawnButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+spawnButton.Text = "Spawn Rig"
+spawnButton.Font = Enum.Font.SourceSansBold
+spawnButton.TextSize = 24
+spawnButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+local rig = nil
+
+spawnButton.MouseButton1Click:Connect(function()
+    if rig then
+        rig:Destroy() -- Remove existing rig if it exists
+    end
+    -- Create and position the rig
+    rig = Instance.new("Model", workspace)
+    local humanoid = Instance.new("Humanoid", rig)
+    local humanoidRootPart = Instance.new("Part", rig)
+    humanoidRootPart.Size = Vector3.new(2, 5, 1)
+    humanoidRootPart.Anchored = false
+    humanoidRootPart.CanCollide = true
+    humanoidRootPart.Position = player.Character.HumanoidRootPart.Position + Vector3.new(5, 0, 0) -- Spawn slightly to the side
+    humanoidRootPart.Name = "HumanoidRootPart"
+
+    rig.PrimaryPart = humanoidRootPart
+    humanoidRootPart.CFrame = humanoidRootPart.CFrame + Vector3.new(0, 2.5, 0) -- Adjust position to be above ground
+
+    humanoid.MaxHealth = math.huge
+    humanoid.Health = humanoid.MaxHealth
+end)
+
+-- Follow Button
+local followButton = Instance.new("TextButton", background)
+followButton.Size = UDim2.new(0, 280, 0, 50)
+followButton.Position = UDim2.new(0, 10, 0, 110)
+followButton.BackgroundColor3 = Color3.fromRGB(0, 0, 255)
+followButton.Text = "Follow"
+followButton.Font = Enum.Font.SourceSansBold
+followButton.TextSize = 24
+followButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+local following = false
+
+followButton.MouseButton1Click:Connect(function()
+    if rig and rig:FindFirstChild("Humanoid") then
+        following = not following
+        if following then
+            followButton.Text = "Stop Following"
+            while following do
+                rig:SetPrimaryPartCFrame(player.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -5)) -- Adjust position to be behind the player
+                wait(0.1)
+            end
+        else
+            followButton.Text = "Follow"
+        end
+    end
+end)
+
+-- Jump Button
+local jumpButton = Instance.new("TextButton", background)
+jumpButton.Size = UDim2.new(0, 280, 0, 50)
+jumpButton.Position = UDim2.new(0, 10, 0, 170)
+jumpButton.BackgroundColor3 = Color3.fromRGB(255, 255, 0)
+jumpButton.Text = "Jump"
+jumpButton.Font = Enum.Font.SourceSansBold
+jumpButton.TextSize = 24
+jumpButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+jumpButton.MouseButton1Click:Connect(function()
+    if rig and rig:FindFirstChild("Humanoid") then
+        rig.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping) -- Trigger the default jump animation
+    end
+end)
+
+-- Sit Button
+local sitButton = Instance.new("TextButton", background)
+sitButton.Size = UDim2.new(0, 280, 0, 50)
+sitButton.Position = UDim2.new(0, 10, 0, 230)
+sitButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
+sitButton.Text = "Sit"
+sitButton.Font = Enum.Font.SourceSansBold
+sitButton.TextSize = 24
+sitButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+sitButton.MouseButton1Click:Connect(function()
+    if rig and rig:FindFirstChild("Humanoid") then
+        rig.Humanoid:ChangeState(Enum.HumanoidStateType.Sitting) -- Make the rig sit
+    end
+end)
